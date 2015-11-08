@@ -25,6 +25,7 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
     pwrcap: power limit of the system
     plcy: function that receives wkld, spd, pwrusg and two triples (i1,j1,k1) and (i2,j2,k2) and returns True
     if and only if (i1,j1,k1) < (i2,j2,k2) in the policy used to greedly allocate the task
+    (i.e., triple (i1,j1,k1) is preferred over (i2,j2,k2))
 
     Returns: A triple (order, trn, run)
     order: list of orderings of tasks on machines

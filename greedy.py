@@ -5,6 +5,18 @@ class no_solution: pass
 
 import heapq
 
+def less2key(less, cls):
+    class cls_less(cls):
+        def __lt__(self, other):
+            return less(cls(self), cls(other))
+        def __gt__(self, other):
+            return less(cls(other), cls(self))
+        def __le__(self, other):
+            return not less(cls(other), cls(self))
+        def __ge__(self, other):
+            return not less(cls(self), cls(other))
+    return cls_less
+
 def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
     """Greedly schedules tasks according to a certain policy (no transitions while executing a task)
 
@@ -26,6 +38,7 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
     plcy: function that receives wkld, spd, pwrusg and two triples (i1,j1,k1) and (i2,j2,k2) and returns True
     if and only if (i1,j1,k1) < (i2,j2,k2) in the policy used to greedly allocate the task
     (i.e., triple (i1,j1,k1) is preferred over (i2,j2,k2))
+    --> plcy may assume that it will receive triples that don't yield zero speed
 
     Returns: A triple (order, trn, run)
     order: list of orderings of tasks on machines
@@ -70,7 +83,7 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
               for j in range(machines)
               for k in range(configs)
               if pwrusg[i][j][k] <= pwrcap and spd[i][j][k] > 0 #exclude violating configs and zero speeds
-          ].sort(key=lambda t1,t2: plcy(wkld,spd,pwrusg,t1,t2))
+          ].sort(key=less2key(lambda t1,t2: plcy(wkld,spd,pwrusg,t1,t2)))
     
     taskcompleted = [False] * tasks
     events = [(0, #time

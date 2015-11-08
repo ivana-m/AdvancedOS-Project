@@ -25,7 +25,7 @@ def getAssignmentCompletionFromReal(wrkld, spd, order, trn):
     Returns:
     A list run such that
     - for every machine j, and every t in len(order[j])
-    - task order[j] runs on machine j from time run[j][t] to time run[j][t+1]
+    - task order[j][t] runs on machine j from time run[j][t] to time run[j][t+1]
 
     Assumptions:
     trn has at least one element
@@ -105,7 +105,7 @@ def getAssignmentCompletionFromPseudo(wrkld, spd, order, trn):
     Returns:
     A list run such that
     - for every machine j, and every t in len(order[j])
-    - task order[j] runs on machine j from time run[j][t] to time run[j][t+1]
+    - task order[j][t] runs on machine j from time run[j][t] to time run[j][t+1]
 
     Assumptions:
     trn has at least one element
@@ -199,7 +199,7 @@ def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn, fin
     A tuple (run,realtrn), where
     - run: describes when each task runs on each machine
     -- for every machine j, and every t in len(order[j])
-    -- task order[j] runs on machine j from time run[j][t] to time run[j][t+1]
+    -- task order[j][t] runs on machine j from time run[j][t] to time run[j][t+1]
     - realtrn: is the list of real state transitions
     -- for every t in range(len(realtrn)),
     -- realtrn[t].time is the time of transition t

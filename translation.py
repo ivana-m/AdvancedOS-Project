@@ -171,7 +171,7 @@ def getAssignmentCompletionFromPseudo(wrkld, spd, order, trn):
 
 #----------------------------------------------------------------------------------------------------
 
-def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn):
+def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn, finaltrnconfig=[0]*machines):
     """Computes the assignment/completion times from a solution given by order plus transitions into pseudo
     system states (does not check for correctness of the solution)
 
@@ -190,6 +190,10 @@ def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn):
     -- for every system configuration (k1,...,km), where m is the number of machines,
     -- trn[t].configcoeff[k1,...,km] is the coefficient of real system configuration (k1,...,km) in the
        pseudo system configuration to which machine j has transitioned
+    finaltrnconfig: list of machine configurations to be put at the end
+    --- for every machine j,
+    --- finaltrnconfig[j] is the configuration to which machine j has transitioned
+    (this is typically the list of idle configurations)
 
     Returns:
     A tuple (run,realtrn), where
@@ -239,5 +243,5 @@ def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn):
                       for sysconf in product(range(nconfigs), repeat=machines)# iterator for system configurations
                       if trn[t].configcoeff[sysconf] != 0]
     #The part below normalizes the solution by putting a final state transition at the end
-    realtrn.append(stateTran(lasttime,[0]*machines))
+    realtrn.append(stateTran(lasttime,finaltrnconfig))
     return (run,realtrn)

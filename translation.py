@@ -15,8 +15,8 @@ def getAssignmentCompletionFromReal(wrkld, spd, order, trn):
     Arguments:
     wrkld: list of workloads of each task
     spd: list of speeds of configurations states
-    - for every task i, every machine j, and every configuration l,
-    - spd[i][j][l] is the speed of task i in machine j while in configuration l
+    - for every task i, every machine j, and every configuration k,
+    - spd[i][j][k] is the speed of task i in machine j while in configuration k
     order: list of orderings of tasks on machines
     - for every machine j,
     - order[j] is a list [i1, ..., ik] that describes the tasks that will be run on machine j and their order
@@ -102,8 +102,8 @@ def getAssignmentCompletionFromPseudo(wrkld, spd, order, trn):
     Arguments:
     wrkld: list of workloads of each task
     spd: list of speeds of configurations states
-    - for every task i, every machine j, and every configuration l,
-    - spd[i][j][l] is the speed of task i in machine j while in configuration l
+    - for every task i, every machine j, and every configuration k,
+    - spd[i][j][l] is the speed of task i in machine j while in configuration k
     order: list of orderings of tasks on machines
     - for every machine j,
     - order[j] is a list [i1, ..., ik] that describes the tasks that will be run on machine j and their order
@@ -191,8 +191,8 @@ def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn):
     Arguments:
     wrkld: list of workloads of each task
     spd: list of speeds of configurations states
-    - for every task i, every machine j, and every configuration l,
-    - spd[i][j][l] is the speed of task i in machine j while in configuration l
+    - for every task i, every machine j, and every configuration k,
+    - spd[i][j][l] is the speed of task i in machine j while in configuration k
     order: list of orderings of tasks on machines
     - for every machine j,
     - order[j] is a list [i1, ..., ik] that describes the tasks that will be run on machine j and their order
@@ -200,8 +200,8 @@ def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn):
     - for every t in range(len(trn)),
     - trn[t].time is the time of transition t
     - trn[t].configcoeff is an numpy.array of machine configurations
-    -- for every system configuration (l1,...,lm), where m is the number of machines,
-    -- trn[t].configcoeff[l1,...,lm] is the coefficient of real system configuration (l1,...,lm) in the
+    -- for every system configuration (k1,...,km), where m is the number of machines,
+    -- trn[t].configcoeff[k1,...,km] is the coefficient of real system configuration (k1,...,km) in the
        pseudo system configuration to which machine j has transitioned
 
     Returns:

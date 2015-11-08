@@ -1,8 +1,7 @@
 #!/usr/bin/python
 #-*- coding: utf-8 -*-
 
-from translation import stateTran
-from translation import pseudoStateTran
+from commonclasses import stateTran, pseudoStateTran
 from numpy import array
 
 workload = [10] * 6

@@ -1,9 +1,10 @@
 #!/usr/bin/python
 #-*- coding: utf-8 -*-
 
-class no_solution: pass
+class no_solution(BaseException): pass
 
 import heapq
+from commonclasses import stateTran
 
 def less2key(less, cls):
     class cls_less(cls):
@@ -35,7 +36,7 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
     - for every machine j
     - idleusg[j] is the power usage of the idle configuration of machine j when no task is running
     pwrcap: power limit of the system
-    plcy: function that receives wkld, spd, pwrusg and two triples (i1,j1,k1) and (i2,j2,k2) and returns True
+    plcy: function that receives wrkld, spd, pwrusg and two triples (i1,j1,k1) and (i2,j2,k2) and returns True
     if and only if (i1,j1,k1) < (i2,j2,k2) in the policy used to greedly allocate the task
     (i.e., triple (i1,j1,k1) is preferred over (i2,j2,k2))
     --> plcy may assume that it will receive triples that don't yield zero speed
@@ -83,12 +84,12 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
               for j in range(machines)
               for k in range(configs)
               if pwrusg[i][j][k] <= pwrcap and spd[i][j][k] > 0 #exclude violating configs and zero speeds
-          ].sort(key=less2key(lambda t1,t2: plcy(wkld,spd,pwrusg,t1,t2)))
+          ]
+    possib.sort(key=less2key(lambda t1,t2: plcy(wrkld,spd,pwrusg,t1,t2), tuple))
     
     taskcompleted = [False] * tasks
     events = [(0, #time
-               0)#machine that became free (first value is irrelevant)
-           )]
+               0)]#machine that became free (first value is irrelevant)
     currentconfigs = [idle[j] for j in range(machines)]
     currentpwrusgs = [idleusg[j] for j in range(machines)]
     currenttotalpwrusg = sum(currentpwrusgs)
@@ -96,14 +97,14 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
     numberoffree = machines
     
     while True: #Equivalent to while len(events) != 0 here
-        (time, becamefree) heapq.heappop(events)
+        (time, becamefree) = heapq.heappop(events)
         # currentfree update block
         while True:
-            if not free[becamefree]:
-                free[becamefree] = True
+            if not currentfree[becamefree]:
+                currentfree[becamefree] = True
                 numberoffree += 1
-                currenttotalpwrusg += currentpwrusg[becamefree] - idleusg[becamefree]
-                currentpwrusg[becamefree] = idleusg[becamefree]
+                currenttotalpwrusg += idleusg[becamefree] - currentpwrusgs[becamefree]
+                currentpwrusgs[becamefree] = idleusg[becamefree]
                 currentconfigs[becamefree] = idle[becamefree]
             if len(events) == 0 or events[0][0] != time:
                 break
@@ -115,39 +116,43 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
         while numberoffree:
             while psbind < len(possib):
                 i,j,k = possib[psbind]
-                if taskcompleted[i] = True: # task is completed: can be removed from possibilities
+                if taskcompleted[i]: # task is completed: can be removed from possibilities
                     del possib[psbind]
                     continue # avoid incrementing index psbind
                 if currentfree[j] and currenttotalpwrusg - currentpwrusgs[j] + pwrusg[i][j][k] <= pwrcap:
                     break # found best valid triple!
                 psbind += 1
             else: # (while's else) cannot run any more tasks at this time
-                if numberoffree == machines: #no occupied machine: either we are done or there is no solution
-                    if False in taskcompleted: #some task is left: no solution
-                        raise no_solution
-                    for j in range(machines):# Fix run for machines that never ran any task
-                        if len(order) == 0:
-                            run[j] = []
-                    trn.append(stateTran(time,currentconfigs))#add final transition to idle states at the end
-                    return (order,trn,run) #RETURN IS HERE!!
+                if numberoffree < machines:
+                    #at least one occupied machine, wait for it to finish
+                    #(that is leave the while loop skipping the "Run task block")
+                    break
+                #no occupied machine: either we are done or there is no solution
+                if False in taskcompleted: #some task is left: no solution
+                    raise no_solution
+                for j in range(machines):# Fix run for machines that never ran any task
+                    if len(order[j]) == 0:
+                        run[j] = []
+                trn.append(stateTran(time,currentconfigs))#add final transition to idle states at the end
+                return (order,trn,run) #RETURN IS HERE!!
 
             # Run i on j with config k block
             taskcompleted[i] = True
             del possib[psbind]
             order[j].append(i)
-            currenttotalpwrusg += pwrusg[i][j][k] - currentusgs[j] 
+            currenttotalpwrusg += pwrusg[i][j][k] - currentpwrusgs[j] 
             currentconfigs[j] = k
             currentpwrusgs[j] = pwrusg[i][j][k]
             #transition left to be updated after all tasks of this time are processed
 
             completiontime = time + wrkld[i] / spd[i][j][k] #speed guaranteed to be non-zero
             run[j].append(completiontime)
-            heapq.heappush((completiontime,j)) #machine j will become free at time completiontime
+            heapq.heappush(events,(completiontime,j)) #machine j will become free at time completiontime
 
             currentfree[j] = False
             numberoffree -= 1
             # End of run i on j with config k block
 
         #update transition of this time
-        trn.append(stateTran(time,currentconfigs))
+        trn.append(stateTran(time,currentconfigs[:])) #the slicing is to generate a copy
     #greedy's return is inside while True loop...

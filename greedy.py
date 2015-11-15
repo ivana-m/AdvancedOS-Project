@@ -272,8 +272,8 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False)
                 currentrunning[machinecompleted] = None
                 if len(events) == 0 or events[0][0] != time:
                     break
-            #next event has the same time (i.e., more machines may have become free at time)
-            machinecompleted = heapq.heappop(events)[1]
+                #next event has the same time (i.e., more machines may have become free at time)
+                machinecompleted = heapq.heappop(events)[1]
         # End taskcompleted update block
 
         # wrkld update block

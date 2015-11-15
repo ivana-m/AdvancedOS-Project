@@ -246,11 +246,11 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False)
           ]
     possib.sort(key=less2key(lambda t1,t2: plcy(wrkld,spd,pwrusg,t1,t2), tuple))
     
-    taskcompleted = [False] * tasks
+    taskstatus = [0] * tasks #0: waiting, 1: running, 2: completed
     events = [(0, #time
                0)]#machine that became free (first value is irrelevant)
 
-    idletotalpwrusg = sum(currentpwrusgs)
+    idletotalpwrusg = sum(idleusg)
     currentrunning = [None] * machines
     time = 0
 
@@ -264,17 +264,17 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False)
     while True: #Equivalent to while len(events) != 0 here
         prevtime = time
         (time, machinecompleted) = heapq.heappop(events)
-        # taskcompleted update block
+        # taskstatus update block
         if prevtime != time: #to exclude first iteration
             while True:
-                taskcompleted[currentrunning[machinecompleted]] = True
+                taskstatus[currentrunning[machinecompleted]] = 2
                 run[machinecompleted].append(time)
                 currentrunning[machinecompleted] = None
                 if len(events) == 0 or events[0][0] != time:
                     break
                 #next event has the same time (i.e., more machines may have become free at time)
                 machinecompleted = heapq.heappop(events)[1]
-        # End taskcompleted update block
+        # End taskstatus update block
 
         # wrkld update block
         deltat = time - prevtime
@@ -296,11 +296,11 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False)
         while numberoffree:
             while psbind < len(possib):
                 i,j,k = possib[psbind]
-                if taskcompleted[i]: # task is completed: can be removed from possibilities
+                if taskstatus[i] == 2: # task is completed: can be removed from possibilities
                     del possib[psbind]
                     continue # avoid incrementing index psbind
                 if (currentfree[j] and
-                    (currentrunning[j] == None or currentrunning[j] == i) and
+                    ((currentrunning[j] == None and taskstatus[i] == 0) or currentrunning[j] == i) and
                     currenttotalpwrusg - currentpwrusgs[j] + pwrusg[i][j][k] <= pwrcap):
                     break # found best valid triple!
                 psbind += 1
@@ -310,7 +310,7 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False)
                     #(that is leave the while loop skipping the "Run task block")
                     break
                 #no occupied machine: either we are done or there is no solution
-                if False in taskcompleted: #some task is left: no solution
+                if 0 in taskstatus: #some task is left: no solution
                     raise no_solution
                 for j in range(machines):# Fix run for machines that never ran any task
                     if len(order[j]) == 0:
@@ -319,6 +319,7 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False)
                 return (order,trn,run) #RETURN IS HERE!!
 
             # Run i on j with config k block
+            taskstatus[i] = 1
             if currentrunning[j] == None:
                 order[j].append(i)
             currentrunning[j] = i

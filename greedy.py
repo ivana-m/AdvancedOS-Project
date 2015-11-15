@@ -99,17 +99,17 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
     while True: #Equivalent to while len(events) != 0 here
         (time, becamefree) = heapq.heappop(events)
         # currentfree update block
-        while True:
-            if not currentfree[becamefree]:
+        if time != 0: #to exclude first iteration
+            while True:
                 currentfree[becamefree] = True
                 numberoffree += 1
                 currenttotalpwrusg += idleusg[becamefree] - currentpwrusgs[becamefree]
                 currentpwrusgs[becamefree] = idleusg[becamefree]
                 currentconfigs[becamefree] = idle[becamefree]
-            if len(events) == 0 or events[0][0] != time:
-                break
-            #next event has the same time (i.e., more machines may have become free at time)
-            becamefree = heapq.heappop(events)[1]
+                if len(events) == 0 or events[0][0] != time:
+                    break
+                #next event has the same time (i.e., more machines may have become free at time)
+                becamefree = heapq.heappop(events)[1]
         # End currentfree update block
 
         psbind = 0 #since deletion in list possib is involved, we must do it like this

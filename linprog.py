@@ -63,11 +63,22 @@ def linear_program(wrkld, spd, pwrusg, idle, idleusg, pwrcap):
     objective = []
 
     # Run only one instance on each task/machine.
-    for machine in xrange(machines):
+    for task in xrange(tasks):
         one_per_machine = [0] * (configurations * tasks) + [0, 1]
-        for i in xrange(configurations):
-            one_per_machine[i + machine * configurations] = 1
+        for configuration in xrange(configurations):
+            one_per_machine[configuration + task * configurations] = int(
+                pwrusg[task][task][configuration] <= pwrcap)
         equality.append(one_per_machine)
+
+    # Filter out tasks that are infeasible (speed == 0, power >= cap)
+    for task in xrange(tasks):
+        for configuration in xrange(configurations):
+            if (pwrusg[task][task][configuration] >= pwrcap or
+                spd[task][task][configuration] == 0):
+
+                only_feasible = [0] * (configurations * tasks) + [0, 0]
+                only_feasible[configuration + task * configurations] = 1
+                equality.append(only_feasible)
 
     # Ensure that the total energy is less than the threshold.
     power_less_than_cap = [0] * (configurations * tasks) + [0, pwrcap]
@@ -85,9 +96,7 @@ def linear_program(wrkld, spd, pwrusg, idle, idleusg, pwrcap):
             time_less_than_slack = [0] * (configurations * tasks) + [-1, 0]
             units_per_second = spd[task][task][configuration]
             total_units = wrkld[task]
-            if units_per_second == 0:
-                time_less_than_slack[index] = 100
-            else:
+            if units_per_second > 0:
                 time_less_than_slack[index] = total_units / units_per_second
             inequality.append(time_less_than_slack)
             index += 1
@@ -98,7 +107,7 @@ def linear_program(wrkld, spd, pwrusg, idle, idleusg, pwrcap):
     b_ub = [x[-1] for x in inequality]
     A_eq = [x[:-1] for x in equality]
     b_eq = [x[-1] for x in equality]
-    
+
     result = scipy.optimize.linprog(
         c=c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq)
 

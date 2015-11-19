@@ -157,18 +157,6 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
         trn.append(stateTran(time,currentconfigs[:])) #the slicing is to generate a copy
     #greedy's return is inside while True loop...
 
-def less2key(less, cls):
-    class cls_less(cls):
-        def __lt__(self, other):
-            return less(cls(self), cls(other))
-        def __gt__(self, other):
-            return less(cls(other), cls(self))
-        def __le__(self, other):
-            return not less(cls(other), cls(self))
-        def __ge__(self, other):
-            return not less(cls(self), cls(other))
-    return cls_less
-
 def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False):
     """Greedly schedules tasks according to a certain policy (allows transitions while executing a task)
 

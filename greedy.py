@@ -157,7 +157,7 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
         trn.append(stateTran(time,currentconfigs[:])) #the slicing is to generate a copy
     #greedy's return is inside while True loop...
 
-def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False):
+def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=True, reorder=True):
     """Greedly schedules tasks according to a certain policy (allows transitions while executing a task)
 
     Arguments:
@@ -180,6 +180,8 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False)
     (i.e., triple (i1,j1,k1) is preferred over (i2,j2,k2))
     --> plcy may assume that it will receive triples that don't yield zero speed
     makecopy: boolean, if True, algorithm does not change any of its parameters (see Data races)
+    reorder: reorder triples (task, machine, configuration) after each task completion (needed if policy is to
+    use workload left instead of initial workload of tasks)
 
     Returns: A triple (order, trn, run)
     order: list of orderings of tasks on machines
@@ -232,7 +234,8 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False)
               for k in range(configs)
               if pwrusg[i][j][k] <= pwrcap and spd[i][j][k] > 0 #exclude violating configs and zero speeds
           ]
-    possib.sort(key=less2key(lambda t1,t2: plcy(wrkld,spd,pwrusg,t1,t2), tuple))
+    key=less2key(lambda t1,t2: plcy(wrkld,spd,pwrusg,t1,t2), tuple)
+    possib.sort(key=key)
     
     taskstatus = [0] * tasks #0: waiting, 1: running, 2: completed
     events = [(0, #time
@@ -279,6 +282,9 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=False)
         numberoffree = machines
         # Since new configs will be picked, completion times in events are invalid now:
         events = []
+        # Since wrklds might have been updated, we may need to sort the triples again
+        if (reorder):
+            possib.sort(key=key)
 
         psbind = 0 #since deletion in list possib is involved, we must do it like this
         while numberoffree:

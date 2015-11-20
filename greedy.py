@@ -4,19 +4,7 @@
 class no_solution(BaseException): pass
 
 import heapq
-from commonclasses import stateTran
-
-def less2key(less, cls):
-    class cls_less(cls):
-        def __lt__(self, other):
-            return less(cls(self), cls(other))
-        def __gt__(self, other):
-            return less(cls(other), cls(self))
-        def __le__(self, other):
-            return not less(cls(other), cls(self))
-        def __ge__(self, other):
-            return not less(cls(self), cls(other))
-    return cls_less
+from commonclasses import stateTran, less2key
 
 def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
     """Greedly schedules tasks according to a certain policy (no transitions while executing a task)

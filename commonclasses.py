@@ -14,3 +14,15 @@ class pseudoStateTran:
         self.configcoeff = _configcoeff
     def __str__(self):
         return str((self.time,self.configcoeff))
+
+def less2key(less, cls):
+    class cls_less(cls):
+        def __lt__(self, other):
+            return less(cls(self), cls(other))
+        def __gt__(self, other):
+            return less(cls(other), cls(self))
+        def __le__(self, other):
+            return not less(cls(other), cls(self))
+        def __ge__(self, other):
+            return not less(cls(self), cls(other))
+    return cls_less

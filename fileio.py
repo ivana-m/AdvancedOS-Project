@@ -150,3 +150,4 @@ def file2rect(filename, sep='\t', hsep='\t'):
             x2 = float(x2)
 
             rects.append((i,j,k,y,x1,x2))
+        return (tasks, machines, configs, pwrcap, mintime, maxtime, rects)

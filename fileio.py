@@ -46,6 +46,10 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
     B <Task> S <Machine> S <Configuration> S <power usage> S <time1> S <time2> E
     where time1 <= time2, B is begin, S is sep, and E is end.
 
+    Tasks are enumerated from 0 to #Tasks-1.
+    When a machine idles, we represent it as an idle task running on it.
+    The number of the idle task is represented as #Tasks.
+
     The file then ends with the tail string.
     """
 
@@ -67,8 +71,9 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
             for j in range(machines):
                 prevtime = trn[t-1].time #must be here
                 k = trn[t-1].config[j]
-                if orderinds[j] <= len(order[j]):
+                if orderinds[j] < len(order[j]):
                     while run[orderinds[j]+1] < trn[t].time:
+                        #Tasks that finish before next transition
                         i = order[orderinds[j]]
                         f.write(begin + str(i) + sep + str(j) + sep + str(k) + sep + pwrusg[i][j][k] + sep
                                 + str(prevtime) + sep + str(run[orderinds[j]+1]) + end)
@@ -76,10 +81,19 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
                         if orderinds[j] == len(order[j]):
                             break
                         prevtime = run[orderinds[j]]
-                    if orderinds[j] == len(order[j]): #needed!
-                        if prevtime < trn[t].time: #avoid useless line
-                            i = order[orderinds[j]]
-                            f.write(begin + str(i) + sep + str(j) + sep + str(k) + sep + pwrusg[i][j][k] + sep
-                                    + str(prevtime) + sep + str(trn[t].time) + end)
+                    if orderinds[j] < len(order[j]): #needed!
+                        #Task that run up to transition time
+                        i = order[orderinds[j]]
+                        f.write(begin + str(i) + sep + str(j) + sep + str(k) + sep + pwrusg[i][j][k] + sep
+                                + str(prevtime) + sep + str(trn[t].time) + end)
+                        if run[orderinds[j]+1] == trn[t].time: #task finished on transition time
+                            orderinds[j] += 1
+                        prevtime = trn[t].time
+                if orderinds[j] == len(order[j]): #needed!
+                    #Nothing left to run
+                    if prevtime < trn[t].time:
+                        # But there is still time left: run idle task
+                        f.write(begin + str(tasks) + sep + str(j) + sep + str(k) + sep + pwrusg[i][j][k] + sep
+                                + str(prevtime) + sep + str(trn[t].time) + end)
         #out of for
         f.write(tail)

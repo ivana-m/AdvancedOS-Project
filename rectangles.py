@@ -64,7 +64,7 @@ def drawrects(rects, drawrect, isCan=False, makecopy=False):
 
     if not isCan:
         rects = rect2canrects(rects)
-    else if makecopy:
+    elif makecopy:
         rects = rects[:]
 
     def key(rect):#Key to order rects

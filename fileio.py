@@ -3,7 +3,7 @@
 
 from commonclasses import stateTran
 
-def val2file(filename, pwrusg, pwrcap, order, trn, run,
+def val2file(filename, pwrusg, idle, idleusg, pwrcap, order, trn, run,
              begin='', sep='\t', end = '\n', hbegin='', hsep='\t', hend='\n', tail=''):
     """Writes file with all information for plotting
 
@@ -12,6 +12,12 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
     pwrusg: list of power usages of configuration states
     - for every task i, every machine j, and every configuration k,
     - pwrusg[i][j][k] is the power usage of task i in machine j while in configuration k
+    idle: list of idle configuration states
+    - for every machine j
+    - idle[j] is the idle configuration of machine j (i.e., the state with less power usage)
+    idleusg: list of power usages of idle configuration states
+    - for every machine j
+    - idleusg[j] is the power usage of the idle configuration of machine j when no task is running
     pwrcap: power limit of the system
     order: list of orderings of tasks on machines
     - for every machine j,
@@ -61,7 +67,7 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
     maxtime = mintime
     for t in trn:
         if t.time > maxtime:
-            maxtime = t
+            maxtime = t.time
 
     with open(filename, 'w') as f:
         f.write(hbegin + str(tasks) + hsep + str(machines) + hsep + str(configs) + hsep + str(pwrcap)
@@ -72,36 +78,36 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
                 prevtime = trn[t-1].time #must be here
                 k = trn[t-1].config[j]
                 if orderinds[j] < len(order[j]):
-                    while run[orderinds[j]+1] < trn[t].time:
+                    while run[j][orderinds[j]+1] < trn[t].time:
                         #Tasks that finish before next transition
-                        i = order[orderinds[j]]
+                        i = order[j][orderinds[j]]
                         f.write(begin + str(i) + sep + str(j) + sep + str(k) + sep
-                                + str(prevtime) + sep + str(run[orderinds[j]+1])+ sep
-                                + pwrusg[i][j][k] + end)
+                                + str(prevtime) + sep + str(run[j][orderinds[j]+1])+ sep
+                                + str(pwrusg[i][j][k]) + end)
                         orderinds[j] += 1
                         if orderinds[j] == len(order[j]):
                             break
-                        prevtime = run[orderinds[j]]
+                        prevtime = run[j][orderinds[j]]
                     if orderinds[j] < len(order[j]): #needed!
                         #Task that run up to transition time
-                        i = order[orderinds[j]]
+                        i = order[j][orderinds[j]]
                         f.write(begin + str(i) + sep + str(j) + sep + str(k) + sep
                                 + str(prevtime) + sep + str(trn[t].time) + sep
-                                + pwrusg[i][j][k] + end)
-                        if run[orderinds[j]+1] == trn[t].time: #task finished on transition time
+                                + str(pwrusg[i][j][k]) + end)
+                        if run[j][orderinds[j]+1] == trn[t].time: #task finished on transition time
                             orderinds[j] += 1
                         prevtime = trn[t].time
                 if orderinds[j] == len(order[j]): #needed!
                     #Nothing left to run
                     if prevtime < trn[t].time:
                         # But there is still time left: run idle task
-                        f.write(begin + str(tasks) + sep + str(j) + sep + str(k) + sep
+                        f.write(begin + str(tasks) + sep + str(j) + sep + str(idle[j]) + sep
                                 + str(prevtime) + sep + str(trn[t].time) + sep
-                                + pwrusg[i][j][k] + end)
+                                + str(idleusg[j]) + end)
         #out of for
         f.write(tail)
 
-def file2rect(filename, sep='\t', hsep='\t'):
+def file2rects(filename, sep='\t', hsep='\t'):
     """Reads a file with all information for plotting
 
     Arguments:
@@ -136,8 +142,8 @@ def file2rect(filename, sep='\t', hsep='\t'):
         machines = int(machines)
         configs = int(configs)
         pwrcap = float(pwrcap)
-        mintime = float(pwrcap)
-        maxtime = float(pwrcap)
+        mintime = float(mintime)
+        maxtime = float(maxtime)
 
         rects = []
         for line in f:

@@ -97,3 +97,56 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
                                 + str(prevtime) + sep + str(trn[t].time) + end)
         #out of for
         f.write(tail)
+
+def file2rect(filename, sep='\t', hsep='\t'):
+    """Reads a file with all information for plotting
+
+    Arguments:
+    filename: input file name
+    sep: separator string (placed between entries)
+    hsep: header separator string (placed between entries of the header)
+
+    Returns: A tuple (tasks, machines, configs, pwrcap, mintime, maxtime, rects)
+    tasks: number of tasks
+    machines: number of machines
+    configs: number of configurations
+    pwrcap: power cap
+    mintime: minimum time
+    maxtime: maximum time
+    rects: list of rectangles corresponding to tasks
+    - each rectangle is a tuple (i,j,k,x1,x2,y)
+    -- i: task number (obs. task number tasks is the idle task)
+    -- j: machine number
+    -- k: configuration number
+    -- y: power usage (rectangle height)
+    -- x1: initial time of rectangle (rectangle initial x)
+    -- x2: final time of rectangle (rectangle final x)
+
+    Assumptions: file properly formatted (see format on val2file documentation) with only whitespaces
+    in the strings begin, end, hbegin, hend, tail; and with separator sep and header separator hsep
+    """
+
+    with open(filename, 'r') as f:
+        header = f.readline()
+        (tasks, machines, configs, pwrcap, mintime, maxtime) = header.strip().split(hsep)
+        tasks = int(tasks)
+        machines = int(machines)
+        configs = int(configs)
+        pwrcap = float(pwrcap)
+        mintime = float(pwrcap)
+        maxtime = float(pwrcap)
+
+        rects = []
+        for line in f:
+            line = line.strip()
+            if len(line) == 0:
+                continue
+            (i,j,k,y,x1,x2) = line.split(sep)
+            i = int(i)
+            j = int(j)
+            k = int(k)
+            y = float(y)
+            x1 = float(x1)
+            x2 = float(x2)
+
+            rects.append((i,j,k,y,x1,x2))

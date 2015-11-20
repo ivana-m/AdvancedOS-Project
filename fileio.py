@@ -43,7 +43,7 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
     where HB is hbegin, HS is hsep, and HE is hend.
 
     The file is composed of logical lines and each logical line is of the form:
-    B <Task> S <Machine> S <Configuration> S <power usage> S <time1> S <time2> E
+    B <Task> S <Machine> S <Configuration> S <time1> S <time2> S <power usage> E
     where time1 <= time2, B is begin, S is sep, and E is end.
 
     Tasks are enumerated from 0 to #Tasks-1.
@@ -75,8 +75,9 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
                     while run[orderinds[j]+1] < trn[t].time:
                         #Tasks that finish before next transition
                         i = order[orderinds[j]]
-                        f.write(begin + str(i) + sep + str(j) + sep + str(k) + sep + pwrusg[i][j][k] + sep
-                                + str(prevtime) + sep + str(run[orderinds[j]+1]) + end)
+                        f.write(begin + str(i) + sep + str(j) + sep + str(k) + sep
+                                + str(prevtime) + sep + str(run[orderinds[j]+1])+ sep
+                                + pwrusg[i][j][k] + end)
                         orderinds[j] += 1
                         if orderinds[j] == len(order[j]):
                             break
@@ -84,8 +85,9 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
                     if orderinds[j] < len(order[j]): #needed!
                         #Task that run up to transition time
                         i = order[orderinds[j]]
-                        f.write(begin + str(i) + sep + str(j) + sep + str(k) + sep + pwrusg[i][j][k] + sep
-                                + str(prevtime) + sep + str(trn[t].time) + end)
+                        f.write(begin + str(i) + sep + str(j) + sep + str(k) + sep
+                                + str(prevtime) + sep + str(trn[t].time) + sep
+                                + pwrusg[i][j][k] + end)
                         if run[orderinds[j]+1] == trn[t].time: #task finished on transition time
                             orderinds[j] += 1
                         prevtime = trn[t].time
@@ -93,8 +95,9 @@ def val2file(filename, pwrusg, pwrcap, order, trn, run,
                     #Nothing left to run
                     if prevtime < trn[t].time:
                         # But there is still time left: run idle task
-                        f.write(begin + str(tasks) + sep + str(j) + sep + str(k) + sep + pwrusg[i][j][k] + sep
-                                + str(prevtime) + sep + str(trn[t].time) + end)
+                        f.write(begin + str(tasks) + sep + str(j) + sep + str(k) + sep
+                                + str(prevtime) + sep + str(trn[t].time) + sep
+                                + pwrusg[i][j][k] + end)
         #out of for
         f.write(tail)
 
@@ -118,9 +121,9 @@ def file2rect(filename, sep='\t', hsep='\t'):
     -- i: task number (obs. task number tasks is the idle task)
     -- j: machine number
     -- k: configuration number
-    -- y: power usage (rectangle height)
     -- x1: initial time of rectangle (rectangle initial x)
     -- x2: final time of rectangle (rectangle final x)
+    -- y: power usage (rectangle height)
 
     Assumptions: file properly formatted (see format on val2file documentation) with only whitespaces
     in the strings begin, end, hbegin, hend, tail; and with separator sep and header separator hsep
@@ -141,13 +144,13 @@ def file2rect(filename, sep='\t', hsep='\t'):
             line = line.strip()
             if len(line) == 0:
                 continue
-            (i,j,k,y,x1,x2) = line.split(sep)
+            (i,j,k,x1,x2,y) = line.split(sep)
             i = int(i)
             j = int(j)
             k = int(k)
-            y = float(y)
             x1 = float(x1)
             x2 = float(x2)
+            y = float(y)
 
-            rects.append((i,j,k,y,x1,x2))
+            rects.append((i,j,k,x1,x2,y))
         return (tasks, machines, configs, pwrcap, mintime, maxtime, rects)

@@ -26,3 +26,5 @@ def less2key(less, cls):
         def __ge__(self, other):
             return not less(cls(self), cls(other))
     return cls_less
+
+class no_solution(BaseException): pass

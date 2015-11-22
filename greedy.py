@@ -1,8 +1,6 @@
 #!/usr/bin/python
 #-*- coding: utf-8 -*-
 
-class no_solution(BaseException): pass
-
 import heapq
 from commonclasses import stateTran, less2key
 

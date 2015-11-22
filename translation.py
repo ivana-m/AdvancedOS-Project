@@ -171,7 +171,7 @@ def getAssignmentCompletionFromPseudo(wrkld, spd, order, trn):
 
 #----------------------------------------------------------------------------------------------------
 
-def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn, finaltrnconfig=[0]*machines):
+def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn, run=None, finaltrnconfig=[0]*machines):
     """Computes the assignment/completion times from a solution given by order plus transitions into pseudo
     system states (does not check for correctness of the solution)
 
@@ -190,6 +190,10 @@ def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn, fin
     -- for every system configuration (k1,...,km), where m is the number of machines,
     -- trn[t].configcoeff[k1,...,km] is the coefficient of real system configuration (k1,...,km) in the
        pseudo system configuration to which machine j has transitioned
+    run: describes when each task runs on each machine (or None (default) to let the function compute this)
+    -- for every machine j, and every t in len(order[j])
+    -- task order[j][t] runs on machine j from time run[j][t] to time run[j][t+1]
+
     finaltrnconfig: list of machine configurations to be put at the end
     --- for every machine j,
     --- finaltrnconfig[j] is the configuration to which machine j has transitioned
@@ -208,9 +212,10 @@ def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn, fin
     --- realtrn[t].config[j] is the configuration to which machine j has transitioned
 
     Assumptions:
-    Assumptions of getAssignmentCompletionFromPseudo
+    If run==None, then assumptions of getAssignmentCompletionFromPseudo
     """
-    run = getAssignmentCompletionFromPseudo(wrkld,spd,order,trn)
+    if run == None:
+        run = getAssignmentCompletionFromPseudo(wrkld,spd,order,trn)
     events = []
     realtrn = []
     machines = len(run)

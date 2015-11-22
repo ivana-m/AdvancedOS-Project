@@ -171,8 +171,8 @@ def getAssignmentCompletionFromPseudo(wrkld, spd, order, trn):
 #----------------------------------------------------------------------------------------------------
 
 def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn, run=None, finaltrnconfig=None):
-    """Computes the assignment/completion times from a solution given by order plus transitions into pseudo
-    system states (does not check for correctness of the solution)
+    """Computes the assignment/completion times and real transitions from a solution given by order plus
+    transitions into pseudo system states (does not check for correctness of the solution)
 
     Arguments:
     wrkld: list of workloads of each task
@@ -216,12 +216,46 @@ def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn, run
     """
     if run == None:
         run = getAssignmentCompletionFromPseudo(wrkld,spd,order,trn)
-    if finaltrnconfig == None:
-        finaltrnconfig = [0]*machines
+    return (run, getRealTransitionsFromPseudo(trn,run,finaltrnconfig))
+
+def getRealTransitionsFromPseudo(trn, run, finaltrnconfig=None):
+    """Computes the transitions into real system states from transitions into pseudo system states and
+    assignment/completion times (does not check for correctness of the solution)
+
+    Arguments:
+    trn: list of state transitions
+    - for every t in range(len(trn)),
+    - trn[t].time is the time of transition t
+    - trn[t].configcoeff is an numpy.array of machine configurations
+    -- for every system configuration (k1,...,km), where m is the number of machines,
+    -- trn[t].configcoeff[k1,...,km] is the coefficient of real system configuration (k1,...,km) in the
+       pseudo system configuration to which machine j has transitioned
+    run: describes when each task runs on each machine (see getAssignmentCompletionRealTransitionsFromPseudo)
+    -- for every machine j, and every t in len(order[j])
+    -- task order[j][t] runs on machine j from time run[j][t] to time run[j][t+1]
+
+    finaltrnconfig: list of machine configurations to be put at the end
+    (or None (default), which is equivalent to [0]*machines)
+    --- for every machine j,
+    --- finaltrnconfig[j] is the configuration to which machine j has transitioned
+    (this is typically the list of idle configurations)
+
+    Returns: a list of real state transitions realtrn, where
+    - realtrn: is the list of real state transitions
+    -- for every t in range(len(realtrn)),
+    -- realtrn[t].time is the time of transition t
+    -- realtrn[t].config is a list of machine configurations
+    --- for every machine j,
+    --- realtrn[t].config[j] is the configuration to which machine j has transitioned
+    """
+
     events = []
     realtrn = []
     machines = len(run)
     nconfigs = len(trn[0].configcoeff) # number of configurations
+
+    if finaltrnconfig == None:
+        finaltrnconfig = [0]*machines
 
     for j in range(machines):
         if run[j]:
@@ -234,7 +268,7 @@ def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn, run
     events.sort()
     lasttime = trn[0].time
     psdnow = [(trn[0].configcoeff[sysconf], list(sysconf))
-              for sysconf in itertools.product(range(nconfigs), repeat=machines)# iterator for system configurations
+              for sysconf in itertools.product(range(nconfigs), repeat=machines)# iterator for system configs
               if trn[0].configcoeff[sysconf] != 0] # first pseudo system state
 
     for (time,j,t) in events:
@@ -247,8 +281,8 @@ def getAssignmentCompletionRealTransitionsFromPseudo(wrkld, spd, order, trn, run
             lasttime = time
         if j == machines: # it is a pseudo system state transition
             psdnow = [(trn[t].configcoeff[sysconf], list(sysconf))
-                      for sysconf in itertools.product(range(nconfigs), repeat=machines)# iterator for system configurations
+                      for sysconf in itertools.product(range(nconfigs), repeat=machines)# iter for system configs
                       if trn[t].configcoeff[sysconf] != 0]
     #The part below normalizes the solution by putting a final state transition at the end
     realtrn.append(stateTran(lasttime,finaltrnconfig))
-    return (run,realtrn)
+    return realtrn

@@ -2,7 +2,7 @@
 #-*- coding: utf-8 -*-
 
 import heapq
-from commonclasses import stateTran, less2key
+from commonclasses import stateTran, less2key, no_solution
 
 def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
     """Greedly schedules tasks according to a certain policy (no transitions while executing a task)

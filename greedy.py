@@ -240,17 +240,19 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=True, 
     
     while True: #Equivalent to while len(events) != 0 here
         prevtime = time
-        (time, machinecompleted) = heapq.heappop(events)
+        time = events[0][0]
         # taskstatus update block
         if prevtime != time: #to exclude first iteration
-            while True:
-                taskstatus[currentrunning[machinecompleted]] = 2
-                run[machinecompleted].append(time)
-                currentrunning[machinecompleted] = None
-                if len(events) == 0 or events[0][0] != time:
-                    break
-                #next event has the same time (i.e., more machines may have become free at time)
-                machinecompleted = heapq.heappop(events)[1]
+            # determine the minimum completion time
+            for (t,mc) in events:
+                if t < time:
+                    time = t
+            # consider tasks that finish at time time completed
+            for (t,machinecompleted) in events:
+                if t == time:
+                    taskstatus[currentrunning[machinecompleted]] = 2
+                    run[machinecompleted].append(time)
+                    currentrunning[machinecompleted] = None
         # End taskstatus update block
 
         # wrkld update block
@@ -309,7 +311,7 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=True, 
             #transition left to be updated after all tasks of this time are processed
 
             completiontime = time + wrkld[i] / spd[i][j][k] #speed guaranteed to be non-zero
-            heapq.heappush(events,(completiontime,j)) #machine j will become free at time completiontime
+            events.append((completiontime,j)) #machine j will become free at time completiontime
 
             currentfree[j] = False
             numberoffree -= 1

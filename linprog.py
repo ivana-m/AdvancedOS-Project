@@ -109,12 +109,12 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
         equalityrhs = [1]#right-hand side
 
         bounds = [None] * (nsysconfigs + 1)
-        for var in bounds:
+        for var in range(nsysconfigs):
             bounds[var] = (0,None)#all variables are non-negative
 
         #Restriction (put on bounds): every sysconf that consumes more than powercap cannot be used:
         #p_{sysconf} = 0 for every sysconf with \sum_j pwrusg[task][machine][sysconf[j]] > pwrcap
-        for sysconf,index in enumerate(itertools.product(range(nconfigs), repeat=machines)):
+        for index,sysconf in enumerate(itertools.product(range(nconfigs), repeat=machines)):
             thispwrusg = 0
             for j in range(machines):
                 if thisalloc[j] != None: #machine has an allocated task
@@ -148,7 +148,7 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
         for j in range(machines):
             if thisalloc[j] != None: #machine had an allocated task
                 effectivespeed[j] = 0
-                for sysconf,index in enumerate(itertools.product(range(nconfigs), repeat=machines)):
+                for index,sysconf in enumerate(itertools.product(range(nconfigs), repeat=machines)):
                     effectivespeed[j] += LPresult.x[sysconfindex] * spd[thisalloc[j]][j][sysconf[j]]
                 completiontimes[j] = wrkld[thisalloc[j]] / effectivespeed[j]
                 if mincompletiontime > completiontimes[j]:
@@ -172,7 +172,7 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
 
         #Add transition at time initialtime to pseudo state given by LP solution
         p = numpy.empty([nconfigs]*machines) #empty array
-        for sysconf,index in enumerate(itertools.product(range(nconfigs), repeat=machines)):
+        for index,sysconf in enumerate(itertools.product(range(nconfigs), repeat=machines)):
             p[sysconf] = LPresult.x[index]
         trn.append(pseudoStateTran(initialtime, p))
 

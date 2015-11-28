@@ -131,7 +131,7 @@ def greedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy):
             currentpwrusgs[j] = pwrusg[i][j][k]
             #transition left to be updated after all tasks of this time are processed
 
-            completiontime = time + wrkld[i] / spd[i][j][k] #speed guaranteed to be non-zero
+            completiontime = time + float(wrkld[i]) / spd[i][j][k] #speed guaranteed to be non-zero
             run[j].append(completiontime)
             heapq.heappush(events,(completiontime,j)) #machine j will become free at time completiontime
 
@@ -310,7 +310,7 @@ def smartGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcy, makecopy=True, 
             currentpwrusgs[j] = pwrusg[i][j][k]
             #transition left to be updated after all tasks of this time are processed
 
-            completiontime = time + wrkld[i] / spd[i][j][k] #speed guaranteed to be non-zero
+            completiontime = time + float(wrkld[i]) / spd[i][j][k] #speed guaranteed to be non-zero
             events.append((completiontime,j)) #machine j will become free at time completiontime
 
             currentfree[j] = False
@@ -453,8 +453,6 @@ def halfHeartedGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcies, makecop
         currentpwrusgs = [idleusg[j] for j in range(machines)]
         currenttotalpwrusg = idletotalpwrusg
         currentcompletiontimes = [None] * machines
-        # Since new configs will be picked, completion times in events are invalid now:
-        events = []
 
         someOccupied = False
         for p in range(nplcies):
@@ -500,7 +498,7 @@ def halfHeartedGreedy(wrkld, spd, pwrusg, idle, idleusg, pwrcap, plcies, makecop
                 currentpwrusgs[j] = pwrusg[i][j][k]
                 #transition left to be updated after all tasks of this time are processed
 
-                completiontime = time + wrkld[i] / spd[i][j][k] #speed guaranteed to be non-zero
+                completiontime = time + float(wrkld[i]) / spd[i][j][k] #speed guaranteed to be non-zero
                 #if we don't change our mind, machine j will become free at time completiontime:
                 currentcompletiontimes[j] = completiontime
 

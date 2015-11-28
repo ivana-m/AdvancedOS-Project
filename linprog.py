@@ -4,11 +4,12 @@
 import numpy
 import scipy.optimize
 import itertools
+from commonclasses import pseudoStateTran
 
 class iteration_limit(BaseException): pass
 class unboundedLP(BaseException): pass
 
-def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
+def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True, epsilon=1e-9):
     """Schedules according to linear program
 
     Arguments:
@@ -27,6 +28,7 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
     - idleusg[j] is the power usage of the idle configuration of machine j when no task is running
     pwrcap: power limit of the system
     makecopy: boolean, if True, algorithm does not change any of its parameters (see Data races)
+    epsilon: precision for zero comparison
 
 
     Returns: A triple (order, trn, run)
@@ -76,7 +78,7 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
         run[j] = [0]
 
     initialtime = 0
-    thisalloc = [i for i in range(tasks)] + [None] * (machines - tasks)
+    thisalloc = [i for i in range(tasks) if i < machines] + [None] * (machines - tasks)
     nexttask = machines
 
     while True:
@@ -104,16 +106,18 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
                 upperboundedrhs.append(0)#right-hand side
 
         #Restriction: coefficients of system configuration sum to 1
-        equalityrestr = [[1] * nsysconfigs
+        equalityrestrs = [[1] * nsysconfigs
                          + [0]]#y
         equalityrhs = [1]#right-hand side
 
         bounds = [None] * (nsysconfigs + 1)
-        for var in range(nsysconfigs):
+        for var in range(nsysconfigs + 1):
             bounds[var] = (0,None)#all variables are non-negative
 
-        #Restriction (put on bounds): every sysconf that consumes more than powercap cannot be used:
+        #Restriction): every sysconf that consumes more than powercap cannot be used:
         #p_{sysconf} = 0 for every sysconf with \sum_j pwrusg[task][machine][sysconf[j]] > pwrcap
+        #put as the sum of such p_{sysconf} equals 0
+        restr = [0] * (nsysconfigs + 1)
         for index,sysconf in enumerate(itertools.product(range(nconfigs), repeat=machines)):
             thispwrusg = 0
             for j in range(machines):
@@ -122,16 +126,18 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
                 elif sysconf[j] == idle[j]: #machine does not have allocated task: it should idle
                     thispwrusg += idleusg[j]
                 else: #machine does not have allocated task but is not idle: forbid system configuration
-                    thispwrusg += pwrcap
+                    thispwrusg += pwrcap + 1
                     break
             if thispwrusg > pwrcap:
-                bounds[index] = (0,0)#force coefficient to be zero
-
+                restr[index] = 1#force coefficient to be zero
+        equalityrestrs.append(restr)
+        equalityrhs.append(0)
+        
         #Solve linear program
         LPresult = scipy.optimize.linprog(c=objective,
                                           A_ub=upperboundedrestr,
                                           b_ub=upperboundedrhs,
-                                          A_eq=equalityrestr,
+                                          A_eq=equalityrestrs,
                                           b_eq=equalityrhs)
 
         if LPresult.nit == 1:
@@ -144,13 +150,13 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
         #Compute task effective speeds and completion times
         effectivespeeds = [None] * machines
         completiontimes = [None] * machines
-        mincompletiontime = 1/LPresult.x[-1] #= 1/y = maxtime
+        mincompletiontime = 2.0/LPresult.x[-1] #= 2/y = 2*maxtime (the 2 is to avoid precision errors)
         for j in range(machines):
             if thisalloc[j] != None: #machine had an allocated task
-                effectivespeed[j] = 0
+                effectivespeeds[j] = 0
                 for index,sysconf in enumerate(itertools.product(range(nconfigs), repeat=machines)):
-                    effectivespeed[j] += LPresult.x[sysconfindex] * spd[thisalloc[j]][j][sysconf[j]]
-                completiontimes[j] = wrkld[thisalloc[j]] / effectivespeed[j]
+                    effectivespeeds[j] += LPresult.x[index] * spd[thisalloc[j]][j][sysconf[j]]
+                completiontimes[j] = float(wrkld[thisalloc[j]]) / effectivespeeds[j]
                 if mincompletiontime > completiontimes[j]:
                     mincompletiontime = completiontimes[j]
 
@@ -158,7 +164,7 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
         #Every task completed in time mincompletiontime is deemed completed
         #All other tasks will be rescheduled (with updated workloads)
         for j in range(machines):
-            if completiontimes[j] == mincompletiontime:
+            if completiontimes[j] <= mincompletiontime + epsilon:
                 order[j].append(thisalloc[j])
                 run[j].append(initialtime + completiontimes[j])
                 if nexttask < tasks:
@@ -168,7 +174,7 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
                 else:
                     thisalloc[j] = None
             elif thisalloc[j] != None: #machine had an allocated task that took more than mincompletiontime
-                wrkld[thisalloc[j]] -= mincompletiontime * effectivespeed[j]
+                wrkld[thisalloc[j]] -= mincompletiontime * effectivespeeds[j]
 
         #Add transition at time initialtime to pseudo state given by LP solution
         p = numpy.empty([nconfigs]*machines) #empty array
@@ -180,13 +186,13 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True):
             for j in range(machines):
                 if thisalloc[j] != None: #machine had an allocated task that took more than mincompletiontime
                     order[j].append(thisalloc[j])
-                    run[j].append(initialtime + completiontime[j])
+                    run[j].append(initialtime + completiontimes[j])
                 elif len(run[j]) == 1: #machine was never used, remove initial run time
                     run[j] = []
             #Add final transition to idle states
             p = numpy.full([nconfigs]*machines,0) #array filled with 0s
             p[tuple(idle)] = 1
-            trn.append(pseudoStateTran(initialtime + 1/LPresult.x[-1], p))
+            trn.append(pseudoStateTran(initialtime + 1.0/LPresult.x[-1], p))
             return (order,trn,run) #RETURN IS HERE!!!
 
         initialtime = mincompletiontime #go to time mincompletiontime

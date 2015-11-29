@@ -4,7 +4,7 @@
 import numpy
 import scipy.optimize
 import itertools
-from commonclasses import pseudoStateTran
+import commonclasses
 
 class iteration_limit(BaseException): pass
 class unboundedLP(BaseException): pass
@@ -143,7 +143,7 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True, epsi
         if LPresult.nit == 1:
             raise iteration_limit
         if LPresult.nit == 2:
-            raise no_solution
+            raise commonclasses.no_solution
         if LPresult.nit == 3:
             raise unboundedLP #This should never be raised if the workloads are non-zero
 
@@ -164,23 +164,24 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True, epsi
         #Every task completed in time mincompletiontime is deemed completed
         #All other tasks will be rescheduled (with updated workloads)
         for j in range(machines):
-            if completiontimes[j] <= mincompletiontime + epsilon:
-                order[j].append(thisalloc[j])
-                run[j].append(initialtime + completiontimes[j])
-                if nexttask < tasks:
-                    finished = False
-                    thisalloc[j] = nexttask
-                    nexttask += 1
-                else:
-                    thisalloc[j] = None
-            elif thisalloc[j] != None: #machine had an allocated task that took more than mincompletiontime
-                wrkld[thisalloc[j]] -= mincompletiontime * effectivespeeds[j]
+            if thisalloc[j] != None:
+                if completiontimes[j] <= mincompletiontime + epsilon:
+                    order[j].append(thisalloc[j])
+                    run[j].append(initialtime + completiontimes[j])
+                    if nexttask < tasks:
+                        finished = False
+                        thisalloc[j] = nexttask
+                        nexttask += 1
+                    else:
+                        thisalloc[j] = None
+                else: #machine had an allocated task that took more than mincompletiontime
+                    wrkld[thisalloc[j]] -= mincompletiontime * effectivespeeds[j]
 
         #Add transition at time initialtime to pseudo state given by LP solution
         p = numpy.empty([nconfigs]*machines) #empty array
         for index,sysconf in enumerate(itertools.product(range(nconfigs), repeat=machines)):
             p[sysconf] = LPresult.x[index]
-        trn.append(pseudoStateTran(initialtime, p))
+        trn.append(commonclasses.pseudoStateTran(initialtime, p))
 
         if finished:
             for j in range(machines):
@@ -192,7 +193,7 @@ def linearProgram(wrkld, spd, pwrusg, idle, idleusg, pwrcap, makecopy=True, epsi
             #Add final transition to idle states
             p = numpy.full([nconfigs]*machines,0) #array filled with 0s
             p[tuple(idle)] = 1
-            trn.append(pseudoStateTran(initialtime + 1.0/LPresult.x[-1], p))
+            trn.append(commonclasses.pseudoStateTran(initialtime + 1.0/LPresult.x[-1], p))
             return (order,trn,run) #RETURN IS HERE!!!
 
         initialtime = mincompletiontime #go to time mincompletiontime

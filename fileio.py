@@ -106,7 +106,6 @@ def val2file(filename, pwrusg, idle, idleusg, pwrcap, order, trn, run,
                                 + str(idleusg[j]) + end)
         #out of for
         f.write(tail)
-        f.close()
 
 def file2rects(filename, sep='\t', hsep='\t'):
     """Reads a file with all information for plotting

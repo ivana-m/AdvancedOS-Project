@@ -216,7 +216,7 @@ def displayDavid(file, powerCap, numApps, fig, axN):
 
 def displayNaive(file,powerCap, numApps, fig):  
     font = 12 #fontsize for the labels
-    offset = powerCap/numApps
+    offset = float(powerCap)/numApps
     f = open(file, 'r')
     lines = getLines(f)
     if(len(lines) == 0):

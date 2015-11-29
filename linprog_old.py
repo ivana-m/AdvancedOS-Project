@@ -97,7 +97,7 @@ def linear_program(wrkld, spd, pwrusg, idle, idleusg, pwrcap):
             units_per_second = spd[task][task][configuration]
             total_units = wrkld[task]
             if units_per_second > 0:
-                time_less_than_slack[index] = total_units / units_per_second
+                time_less_than_slack[index] = float(total_units) / units_per_second
             inequality.append(time_less_than_slack)
             index += 1
 

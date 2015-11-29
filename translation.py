@@ -54,7 +54,7 @@ def getAssignmentCompletionFromReal(wrkld, spd, order, trn):
                 if processed < wrkldleft[j]:
                     wrkldleft[j] -= processed
                     break
-                timeleft -= wrkldleft[j]/speed
+                timeleft -= float(wrkldleft[j])/speed
                 run[j].append(newtime-timeleft)
                 runningindex[j] += 1
                 if len(order[j]) > runningindex[j]:
@@ -68,7 +68,7 @@ def getAssignmentCompletionFromReal(wrkld, spd, order, trn):
         lasttime = time #this must be put here, and not outside
         while runningindex[j] != None:
             speed = spd[order[j][runningindex[j]]][j][trn[-1].config[j]]
-            lasttime += wrkldleft[j]/speed
+            lasttime += float(wrkldleft[j])/speed
             run[j].append(lasttime)
             runningindex[j] += 1
             if len(order[j]) > runningindex[j]:
@@ -140,7 +140,7 @@ def getAssignmentCompletionFromPseudo(wrkld, spd, order, trn):
                 if processed < wrkldleft[j]:
                     wrkldleft[j] -= processed
                     break
-                timeleft -= wrkldleft[j]/speed
+                timeleft -= float(wrkldleft[j])/speed
                 run[j].append(newtime-timeleft)
                 runningindex[j] += 1
                 if len(order[j]) > runningindex[j]:
@@ -159,7 +159,7 @@ def getAssignmentCompletionFromPseudo(wrkld, spd, order, trn):
             speed = 0
             for (p,sysconf) in psdnow:
                 speed += p * spd[order[j][runningindex[j]]][j][sysconf[j]]
-            lasttime += wrkldleft[j]/speed
+            lasttime += float(wrkldleft[j])/speed
             run[j].append(lasttime)
             runningindex[j] += 1
             if len(order[j]) > runningindex[j]:

@@ -1,9 +1,10 @@
 import greedy
-import linprog
+#import linprog
 import greedypolicies
 import fileio
 import rectangles
 import os
+import traceback
 
 import matplotlib.pyplot as plt #use for drawing
 import matplotlib.patches as patches #use for drawing
@@ -20,9 +21,11 @@ def load_tasks(n, m, dir, idlePow):
     speed = []
     taskPow = []
     pu = []
+    if(n > 8 and n<26):
+        n += 1    
     for i in range(0,n):
-        #if(i == 8): #the really slow filebound
-            #continue
+        if(i == 8): #the really slow filebound
+            continue
         taskFile = open(dir+"/"+str(i),'r')
         #taskRuns = []
         for line in taskFile:
@@ -52,21 +55,17 @@ appd = "applications"
 greedyOut = "output/greedy"
 smrtGreedyOut = "output/smartGreedy"
 
-totalNumTasks = 27
-numMachines = 5
+totalNumTasks = 26
+numMachines = 3
 maxPowerCap = 6600
 idlePow = 90.0
 totalWkld = 10
 idlestates = [1024] * numMachines
 idleusage = [idlePow] * numMachines
 
-#policies = [greedypolicies.fast, greedypolicies.short, greedypolicies.economic, greedypolicies.earlycompletion, 
-            
-policies = [greedypolicies.fastNeconomic, greedypolicies.shortNeconomic, greedypolicies.leasttotalusage, greedypolicies.long, greedypolicies.makelongshort, greedypolicies.longNeconomic, greedypolicies.longNeconomicNfast]
+policies = [greedypolicies.fast, greedypolicies.short, greedypolicies.economic, greedypolicies.earlycompletion, greedypolicies.fastNeconomic, greedypolicies.shortNeconomic, greedypolicies.leasttotalusage, greedypolicies.long, greedypolicies.makelongshort, greedypolicies.longNeconomic, greedypolicies.longNeconomicNfast]
 
-#policiesList = ["fast", "short", "economic", "earlycompletion", 
-                
-policiesList = ["fastNeconomic", "shortNeconomic", "leasttotalusage", "long", "makelongshort", "longNeconomic", "longNeconomicNfast"]
+policiesList = ["fast", "short", "economic", "earlycompletion", "fastNeconomic", "shortNeconomic", "leasttotalusage", "long", "makelongshort", "longNeconomic", "longNeconomicNfast"]
 
 
               
@@ -84,8 +83,7 @@ def create_dir(d):
         os.makedirs(d)    
 
 def generate_files(master, dirN):
-    
-    for numTasks in range(1, totalNumTasks + 1):
+    for numTasks in range(1, totalNumTasks + 2):
         speed, pu = load_tasks(numTasks, numMachines, appd, idlePow)
         workload = [totalWkld] * numTasks
         for powerCap in range(1000, maxPowerCap, 400):
@@ -93,32 +91,36 @@ def generate_files(master, dirN):
                 newPath = os.path.join(master,dirN)
                 #create_dir(newPath)
                 #out = newPath+"-"+str(powerCap)+"-"+str(numTasks))
-                
+                nt = str(numTasks)
+                if(numTasks > 8):
+                    nt = str(numTasks - 1)                
                 if(dirN == "greedy"):
                     for policy in policies:
                         newPath = os.path.join(newPath, policiesList[policies.index(policy)])
                         create_dir(newPath)
-                        out = newPath+"-"+str(powerCap)+"-"+str(numTasks)                    
+                        out = newPath+"-"+str(powerCap)+"-"+nt                  
                         order, trn, run = greedy.greedy(workload, speed, pu, idlestates, idleusage, powerCap, policy)
                         fileio.val2file(out, pu, idlestates, idleusage, powerCap, order, trn, run)
+                        newPath = os.path.join(master,dirN)
                 elif(dirN == "smartGreedy"):
                     for policy in policies:
                         newPath = os.path.join(newPath, policiesList[policies.index(policy)])
                         create_dir(newPath)
-                        out = newPath+"-"+str(powerCap)+"-"+str(numTasks)                     
+                        out = newPath+"-"+str(powerCap)+"-"+nt                    
                         order, trn, run = greedy.smartGreedy(workload, speed, pu, idlestates, idleusage, powerCap, policy)
                         fileio.val2file(out, pu, idlestates, idleusage, powerCap, order, trn, run)
+                    newPath = os.path.join(master,dirN)
                     
                 elif(dirN == "halfHeartedGreedy"):
                     for policy in policies:
                         newPath = os.path.join(newPath, policiesList[policies.index(policy)])
                         create_dir(newPath)
-                        out = newPath+"-"+str(powerCap)+"-"+str(numTasks)                     
+                        out = newPath+"-"+str(powerCap)+"-"+nt                    
                         order, trn, run = greedy.smartGreedy(workload, speed, pu, idlestates, idleusage, powerCap, policy)
                         fileio.val2file(out, pu, idlestates, idleusage, powerCap, order, trn, run) 
                     
                 elif(dirN == "lingProg"):
-                    out = newPath+"-"+str(powerCap)+"-"+str(numTasks) 
+                    out = newPath+"-"+str(powerCap)+"-"+nt
                     order, trn, run = linprog.realLinearProgram(workload, speed, pu, idlestates, idleusage, powerCap)
                     fileio.val2file(out, pu, idlestates, idleusage, powerCap, order, trn, run)
                     
@@ -131,7 +133,9 @@ def generate_files(master, dirN):
         
             
 
-#generate_files()
+#sgenerate_files("output","smartGreedy")
+#generate_files("output","greedy")
+generate_files("output", "halfHeartedGreedy")
 
 
 
@@ -169,14 +173,14 @@ def add_idle_rectangle(ax, x, y, w, h, col):
         )    
     
 #if you want to save the output of the figure as an image, use this at the very end
-def save_figure(fig, fileName):
-    fig.savefig(fileName+'.png', dpi='figure', bbox_inches='tight') 
+def save_figure(fig, imgName, imgDir):
+    fig.savefig(os.path.join(imgDir, imgName)+'.png', dpi='figure', bbox_inches='tight') 
     plt.close() #close plot - prevents plot from displaying. Use if generating many plots at once
     
 def add_label(ax, text, x, y, fontsize):
     ax.text(x,y,text,fontsize=fontsize)
           
-def draw(fname, cols, idlecol):
+def draw(fname, dir, subdir, imgName, cols, idlecol):
     fig = init_figure()
     ax = fig.add_subplot(111)
     
@@ -196,7 +200,10 @@ def draw(fname, cols, idlecol):
     plt.ylabel("Power")
     plt.xlabel("Time")
     plt.title(fname.split('-')[0]+" policy, power cap: "+fname.split('-')[1]+", #tasks: "+fname.split('-')[2], fontsize = 14)
-    save_figure(fig, fname)
+    
+    saveDir = os.path.join("imgOutput", dir, subdir)
+    create_dir(saveDir)
+    save_figure(fig, imgName, saveDir)
     
     
 
@@ -219,16 +226,19 @@ def stats_info(fname):
 
 
 def draw_files(dir):
-    for policy in policies:
-        for numTasks in range(1, totalNumTasks + 1):
-            for powerCap in range(1000, maxPowerCap, 400):
-                try:
-                    fn = policiesList[policies.index(policy)]+"-"+str(powerCap)+"-"+str(numTasks)
-                    fname = os.path.join(dir, fn)
-                    
-                    draw(fn, cols, idlecol)
-                except:
-                    pass
+    #for policy in policies:
+        #for numTasks in range(1, totalNumTasks + 1):
+            #for powerCap in range(1000, maxPowerCap, 400):
+    for subdir, dirs, files in os.walk(dir):
+        for file in files:
+            try:
+                #fn = policiesList[policies.index(policy)]+"-"+str(powerCap)+"-"+str(numTasks)
+                fname = os.path.join(subdir, file)
+                
+                draw(fname, dir, subdir, file, colors, idleCol)
+            except:
+                traceback.print_exc()
+                pass
 
 algorithms = ["naive", "not-so-naive", "linprog", 
               
@@ -240,41 +250,68 @@ algorithms = ["naive", "not-so-naive", "linprog",
               "hf3", "hf4"] 
 
 
-def process_files(gdir, sgdir, hfgdir, lindir, ndir, nsndir):
-    for alg in algorithms:
-        out = open("stats-info"+"_"+alg,'w')
-        buff = ""
-        for numTasks in range(1, totalNumTasks + 1):
-            for powerCap in range(1000, maxPowerCap, 400):
-                try:
-                    #fn = policiesList[policies.index(policy)]+"-"+str(powerCap)+"-"+str(numTasks)
-                    if alg.startswith("g-"):
-                        d = gdir
-                    elif alg.startswith("sg-"):
-                        d = sgdir
-                    elif alg.startswith("hf"):
-                        d = gdir
-                    elif alg == "naive":
-                        d = gdir
-                    elif alg == "not-so-naive":    
-                        d = gdir 
-                    elif alg == "linprog":    
-                        d = gdir   
+def process_files(dir):
+   
+    for subdir, dirs, files in os.walk(dir):
+        for file in files:
+            try:
+                fname = os.path.join(subdir, file)
+                numTasks = fname.split('-')[2]
+                powerCap = fname.split('-')[1]
+                saveDir = os.path.join("statsOutput",dir,subdir)
+                create_dir(saveDir)
+                outName = file.split('-')[0]
+                maxtime, totalarea, sumarea, wasted, idlearea = stats_info(fname)
+                t = '\t'
+                nl = '\n'
+                o = open(os.path.join(saveDir, outName), 'a')
+                o.write(str(powerCap) + t + str(numTasks) + t+  str(maxtime) + t+ str(totalarea) + t+ str(sumarea) + t + str(wasted) + t +str(idlearea) + nl)
+                o.close()
+            except:
+                traceback.print_exc()
+                pass    
+    
+    
+    #for alg in algorithms:
+        #out = open("stats-info"+"_"+alg,'w')
+        #buff = ""
+        #for numTasks in range(1, totalNumTasks + 1):
+            #for powerCap in range(1000, maxPowerCap, 400):
+                #try:
+                    ##fn = policiesList[policies.index(policy)]+"-"+str(powerCap)+"-"+str(numTasks)
+                    #if alg.startswith("g-"):
+                        #d = gdir
+                    #elif alg.startswith("sg-"):
+                        #d = sgdir
+                    #elif alg.startswith("hf"):
+                        #d = hfgdir
+                    ##elif alg == "naive":
+                    ##    d = gdir
+                    ##elif alg == "not-so-naive":    
+                    ##    d = gdir 
+                    #elif alg == "linprog":    
+                        #d = gdir   
                     
-                    maxtime, totalarea, sumarea, wasted, idlearea = stats_info(fname)
+                    #maxtime, totalarea, sumarea, wasted, idlearea = stats_info(fname)
                     
-                    tab = "\t"
-                    nl = "\n"
-                    buff +=  + tab + powerCap + tab + numTasks + tab + nl
-                except:
-                    pass
+                    #tab = "\t"
+                    #nl = "\n"
+                    #buff +=  + tab + powerCap + tab + numTasks + tab + nl
+                #except:
+                    #pass
                 
 
-                
-                
+         
+#for subdir, dirs, files in os.walk("output/greedy"):
+#    for file in files:
 
-f = "output/greedy/fast-1000-7"
-draw(f, "fast-1000-7", colors, idleCol)
+#        print(subdir, file)
+
+#f = "output/greedy/fast/fast-1000-7"
+#draw(f, "vlah", colors, idleCol)
+
+#draw_files("output/smartGreedy")
+#process_files("output/greedy")
 
 
 

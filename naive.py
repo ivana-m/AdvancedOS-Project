@@ -69,7 +69,7 @@ def save_figure(fig, imgName, imgDir):
 def add_label(ax, text, x, y, fontsize):
     ax.text(x,y,text,fontsize=fontsize)
     
-def load_tasks(n):
+def load_tasks(n, workload):
     tasks = []
     if(n > 8 and n<26):
         n += 1
@@ -82,7 +82,7 @@ def load_tasks(n):
             properties = line.strip().split('\t')
             performance = properties[1]
             power = properties[2]
-            time = properties[3]
+            time = float(workload / float(performance)) #properties[3]
             tsk = Task(power, time, performance)
             taskRuns.append(tsk)
         tasks.append(taskRuns)
@@ -107,6 +107,25 @@ def get_closestTask(taskFile, powerPerTask):
         return closestTask
     
 
+def idle_complete(lines, time):
+    newLines = []
+    t = '\t'
+    nl = '\n'
+    for line in lines:
+        newLines.append(line)
+        l = line.split('\t')
+        x1 = float(l[0])
+        x2 = float(l[1])
+        y1 = float(l[2])
+        col = '0.5'
+        if(x2 < time):
+            newLine = str(x2) + t + str(time) + t + str(y1) +t + str(y1+90.0) + t+ col + nl
+            newLines.append(newLine)
+            #print(time, ":", line, newLine)
+    return newLines
+        
+    
+
 def naive_simulator(tasks, numTasks, numMachines, powerCap):
     idleRuns = []   
     idleCurrPows = []    
@@ -114,10 +133,46 @@ def naive_simulator(tasks, numTasks, numMachines, powerCap):
     currentPower = 0
     remainingtasks = tasks
     newLines = []
+    lines = []
     maxTime = 0
     run = 0
     totalMaxTime = 0
-    if(numTasks <= numMachines):
+    if(numTasks < numMachines):
+        idleScheduled = 0
+        left = numMachines - numTasks
+        for taskFile in tasks:
+            closestTask = get_closestTask(taskFile, powerPerTask)
+            #print(numTasks, powerCap, ":", closestTask.requiredPower, currentPower + closestTask.requiredPower + 90.0*left, currentPower + closestTask.requiredPower + 90.0*left <= powerCap)
+            if(closestTask != idleTask and (currentPower + closestTask.requiredPower + 90.0*left) <= powerCap):
+                closestTask.currentPower = currentPower
+                closestTask.startTime = 0
+                closestTask.endTime = closestTask.time
+                if(closestTask.endTime > maxTime):
+                    maxTime = closestTask.endTime
+                currentPower += closestTask.requiredPower
+                col = cols[run % len(cols)]
+                newLines.append(new_line(closestTask, col))
+            else:
+                idleRuns.append(run)
+                idleCurrPows.append(currentPower)
+                currentPower += 90
+                newLines.append("")     
+                idleScheduled += 1
+            run += 1
+        for i in range(left - idleScheduled):
+            idleRuns.append(run)
+            idleCurrPows.append(currentPower)
+            currentPower += 90
+            newLines.append("")
+            run+=1
+        i = 0
+        for idleRun in idleRuns:
+            thisIdleTask = Task(90, maxTime, 0, 0, maxTime, idleCurrPows[i])
+            i+=1
+            newLines[idleRun] = new_line(thisIdleTask, idleCol)
+        totalMaxTime = maxTime 
+        newLines = idle_complete(newLines, totalMaxTime)
+    elif(numTasks == numMachines):
         for taskFile in tasks:
             closestTask = get_closestTask(taskFile, powerPerTask)
             if(closestTask != idleTask):
@@ -142,8 +197,11 @@ def naive_simulator(tasks, numTasks, numMachines, powerCap):
                 thisIdleTask = Task(90, maxTime, 0, 0, maxTime, idleCurrPows[i])
                 i+=1
                 newLines[idleRun] = new_line(thisIdleTask, idleCol)
+        
         totalMaxTime = maxTime
+        newLines = idle_complete(newLines, totalMaxTime)
     else: #more tasks than machines
+        idleStartTimes = []
         group = 0
         maxTime = 0
         startTime = 0
@@ -160,11 +218,11 @@ def naive_simulator(tasks, numTasks, numMachines, powerCap):
                         closestTask.currentPower = currentPower
                         closestTask.startTime = startTime
                         closestTask.endTime = closestTask.time + startTime
-                        if(closestTask.endTime > maxTime):
-                            maxTime = closestTask.endTime
+                        if(closestTask.time > maxTime):
+                            maxTime = closestTask.time
                         currentPower += closestTask.requiredPower
                         col = cols[(m+group) % len(cols)]
-                        newLines.append(new_line(closestTask, col))
+                        lines.append(new_line(closestTask, col))
                         
                         scheduledTasks +=1
                         
@@ -174,25 +232,43 @@ def naive_simulator(tasks, numTasks, numMachines, powerCap):
                         idleRuns.append(run)
                         idleCurrPows.append(currentPower)
                         currentPower += 90
-                        newLines.append("")                    
+                        lines.append("")
+                        scheduledTasks += 1
+                        idleStartTimes.append(startTime)
                 else: #idletask
                     idleRuns.append(run)
                     idleCurrPows.append(currentPower)
                     currentPower += 90
-                    newLines.append("")
+                    lines.append("")
+                    idleStartTimes.append(startTime)
                 run += 1
             if(len(idleRuns) > 0):
                 i = 0
+                imaxTime = maxTime
+                if(maxTime == 0):
+                    imaxTime = totalMaxTime
+                #print(numTasks, powerCap, group, maxTime, totalMaxTime, imaxTime, scheduledTasks)
                 for idleRun in idleRuns:
-                    thisIdleTask = Task(90, maxTime, 0, startTime, startTime + maxTime, idleCurrPows[i])
+                    istartTime = idleStartTimes[i]
+                    #if(powerCap == 1000):
+                        #print(numTasks, powerCap, group, imaxTime, idleCurrPows[i], istartTime, istartTime + imaxTime, idleRun)
+                    
+                    thisIdleTask = Task(90, imaxTime, 0, istartTime, istartTime + imaxTime, idleCurrPows[i])
                     i+=1
-                    newLines[idleRun] = new_line(thisIdleTask, idleCol)
-            
+                    lines[idleRun] = new_line(thisIdleTask, idleCol)
+                    
+            newLines += idle_complete(lines, maxTime)
+            #print(lines, newLines)
+            lines = []
+            idleRuns = []
+            idleCurrPows = []
+            idleStartTimes = []
             group += numMachines
             currentPower = 0
             startTime = maxTime
             totalMaxTime += maxTime
             maxTime = 0
+            run = 0
             
     
     outFileBuff = ""
@@ -202,8 +278,8 @@ def naive_simulator(tasks, numTasks, numMachines, powerCap):
 
 
 totalNt = 26
-maxPowerCap = 6600
-numMachines = 3
+maxPowerCap = 4600
+numMachines = 10
 
 def drawNstats_naive(buff, totalMaxTime, powerCap, numTasks):
     lines = buff.split('\n')
@@ -242,7 +318,8 @@ def drawNstats_naive(buff, totalMaxTime, powerCap, numTasks):
             
 
 for numTasks in range(1, totalNt + 2):
-    tasks = load_tasks(numTasks)
+    
+    tasks = load_tasks(numTasks, 10)
     for powerCap in range(1000, maxPowerCap, 400):
         nt = str(numTasks)
         if(numTasks > 8):
@@ -252,7 +329,7 @@ for numTasks in range(1, totalNt + 2):
         f = open("output/naive/"+"naive-"+str(powerCap)+"-"+nt, 'w')
         f.write(buff)
         f.close()
-        
+    
 
  
    

@@ -1,5 +1,10 @@
-import greedy
+#smart greedy: fast, leasttotalusage, makelongshort, longNeconomicNfast
+#naive
+#halfhearted: 1
+
+
 #import linprog
+import greedy
 import greedypolicies
 import fileio
 import rectangles
@@ -56,8 +61,8 @@ greedyOut = "output/greedy"
 smrtGreedyOut = "output/smartGreedy"
 
 totalNumTasks = 26
-numMachines = 3
-maxPowerCap = 6600
+numMachines = 10
+maxPowerCap = 4600
 idlePow = 90.0
 totalWkld = 10
 idlestates = [1024] * numMachines
@@ -76,6 +81,7 @@ hfgreedy3 = [greedypolicies.economic, greedypolicies.leasttotalusage, greedypoli
 hfgreedy4 = [greedypolicies.economic, greedypolicies.earlycompletion]
 
 hf = [hfgreedy1, hfgreedy2, hfgreedy3, hfgreedy4]
+hfList = ["comb1", "comb2", "comb3", "comb4"]
 
 
 def create_dir(d):
@@ -112,30 +118,22 @@ def generate_files(master, dirN):
                     newPath = os.path.join(master,dirN)
                     
                 elif(dirN == "halfHeartedGreedy"):
-                    for policy in policies:
-                        newPath = os.path.join(newPath, policiesList[policies.index(policy)])
+                    for combo in hf:
+                        newPath = os.path.join(newPath, hfList[hf.index(combo)])
                         create_dir(newPath)
                         out = newPath+"-"+str(powerCap)+"-"+nt                    
-                        order, trn, run = greedy.smartGreedy(workload, speed, pu, idlestates, idleusage, powerCap, policy)
+                        order, trn, run = greedy.halfHeartedGreedy(workload, speed, pu, idlestates, idleusage, powerCap, combo)
                         fileio.val2file(out, pu, idlestates, idleusage, powerCap, order, trn, run) 
-                    
-                elif(dirN == "lingProg"):
-                    out = newPath+"-"+str(powerCap)+"-"+nt
-                    order, trn, run = linprog.realLinearProgram(workload, speed, pu, idlestates, idleusage, powerCap)
-                    fileio.val2file(out, pu, idlestates, idleusage, powerCap, order, trn, run)
-                    
-                #elif(dirN == "naive"):
-                    #TODO
-                    
-                #elif(dirN == "not-so-naive"):
+
             except:
+                traceback.print_exc()
                 pass
         
             
 
 #sgenerate_files("output","smartGreedy")
 #generate_files("output","greedy")
-generate_files("output", "halfHeartedGreedy")
+#generate_files("output", "halfHeartedGreedy")
 
 
 
@@ -209,18 +207,20 @@ def draw(fname, dir, subdir, imgName, cols, idlecol):
 
 def stats_info(fname):
     tasks, machines, configs, pwrcap, mintime, maxtime, rects = fileio.file2rects(fname)
-    sumarea = idlearea = 0
+    sumarea = [0]
+    idlearea = [0]
     def addAreas(i, j, k, x1, x2, y1, y2):
-        sumarea += (x2-x1) * (y2 - y1)
+        sumarea[0] += (x2-x1) * (y2 - y1)
         if(i == tasks):
-            idlearea += (x2-x1) * (y2 - y1)
-            
+            idlearea[0] += (x2-x1) * (y2 - y1)
+        
+    
     rectangles.drawrects(rects, addAreas)
     
     totalarea = ((maxtime-mintime) * pwrcap)
-    wasted = totalarea - sumarea
+    wasted = totalarea - sumarea[0]
     
-    return maxtime, totalarea, sumarea, wasted, idlearea
+    return maxtime, totalarea, sumarea[0], wasted, idlearea[0]
     
     
 
@@ -310,8 +310,17 @@ def process_files(dir):
 #f = "output/greedy/fast/fast-1000-7"
 #draw(f, "vlah", colors, idleCol)
 
-#draw_files("output/smartGreedy")
-#process_files("output/greedy")
+
+def doAll(a):    
+    #generate_files("output",a)
+    #draw_files("output/"+a)
+    process_files("output/"+a)
+    
+#doAll("greedy")
+doAll("smartGreedy")
+#doAll("halfHeartedGreedy")
+
+
 
 
 

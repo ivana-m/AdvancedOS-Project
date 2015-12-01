@@ -5,3 +5,6 @@ __pycache__/
 output/
 imgOutput/
 *.png
+*.rar
+*.zip
+statsOutput/
